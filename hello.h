@@ -9,4 +9,4 @@
  * 
  */
 
-int hello(void);
+int hello(void); // test
