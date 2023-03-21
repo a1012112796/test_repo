@@ -1,0 +1,11 @@
+name: checks
+on: 
+  - push
+  - pull_request
+
+jobs:
+  test:
+    name: test run action
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '### Hello world! :rocket:' >> $GITHUB_STEP_SUMMARY
