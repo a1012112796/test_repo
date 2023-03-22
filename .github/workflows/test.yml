@@ -17,6 +17,8 @@ jobs:
           echo "- How about a third one?" >> $GITHUB_STEP_SUMMARY
       - name: sleep 10 secound
         run: sleep 10
+      - name: echo message
+        run: echo "hello world"
       - name: test warning
         run: |
           echo "::warning::This is the message%0A 1234 567"
