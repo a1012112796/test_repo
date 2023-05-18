@@ -26,4 +26,5 @@ jobs:
         with:
           name: build-artifact
           path: .
+      - run: ls -lh
       - run: cat time.txt
