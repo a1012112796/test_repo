@@ -1,0 +1,29 @@
+name: test-artifact
+on:
+  - push
+  - pull_request
+
+jobs:
+  test-artifact-1:
+    name: test 1
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo `date` | tee time.txt
+      - name: cache build result
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact
+          path: time.txt
+          retention-days: 1
+
+  test-artifact-2:
+    name: test 2
+    needs: test-artifact-1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve saved build result
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifact
+          path: .
+      - run: cat time.txt
