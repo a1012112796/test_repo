@@ -9,11 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo `date` | tee time.txt
+      - run: echo `date '+%Y-%m-%d %H:%M:%S'` | tee time2.txt
       - name: cache build result
         uses: actions/upload-artifact@v3
         with:
           name: build-artifact
-          path: time.txt
+          path: |
+            time.txt
+            tim2.txt
           retention-days: 1
 
   test-artifact-2:
@@ -28,3 +31,5 @@ jobs:
           path: .
       - run: ls -lh
       - run: cat time.txt
+      - run: cat time2.txt
+
