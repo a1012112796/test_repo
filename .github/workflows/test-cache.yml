@@ -16,7 +16,7 @@ jobs:
           name: build-artifact
           path: |
             time.txt
-            tim2.txt
+            time2.txt
           retention-days: 1
 
   test-artifact-2:
