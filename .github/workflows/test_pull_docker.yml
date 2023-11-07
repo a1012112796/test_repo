@@ -1,0 +1,15 @@
+name: test pull docker
+on:
+  - push
+
+jobs:
+  test_pull:
+    name: check and test
+    runs-on: ubuntu-latest
+    container:
+      image: a1012112796/rtt_ci_env:sourcery-arm
+      options: --pull always
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: scons -v
