@@ -3,8 +3,8 @@ on:
   - push
 
 jobs:
-  test_pull:
-    name: check and test
+  test_pull_always:
+    name: test always pull
     runs-on: ubuntu-latest
     container:
       image: a1012112796/rtt_ci_env:sourcery-arm
@@ -13,3 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: scons -v
+
+  test_pull_not_always:
+    name: test not always pull
+    runs-on: ubuntu-latest
+    container:
+      image: a1012112796/rtt_ci_env:sourcery-arm
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: scons -v
+
