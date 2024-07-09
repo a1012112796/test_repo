@@ -1,0 +1,17 @@
+name: test-gitea-key
+on:
+  - push
+  - pull_request
+
+jobs:
+  test-gitea-key:
+    name: test 1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: gpg --import gitea-pubkey.txt
+      - run: gpg -k
+      - run: wget https://dl.gitea.com/gitea/1.22-nightly/gitea-1.22-nightly-darwin-10.12-amd64.asc
+      - run: wget https://dl.gitea.com/gitea/1.22-nightly/gitea-1.22-nightly-darwin-10.12-amd64
+      - run: ls
+      - run: gpg --verify gitea-1.22-nightly-darwin-10.12-amd64.asc
