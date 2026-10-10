@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building Gitea from Source on Ubuntu 22.04 (amd64)</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1, h2 { border-bottom: 1px solid #ddd; padding-bottom: .3rem; }
+  pre { background: #f6f8fa; padding: 1rem; overflow-x: auto; border-radius: 6px; }
+  code { font-family: Consolas, "Liberation Mono", monospace; font-size: .92em; }
+  :not(pre) > code { background: #f0f0f0; padding: .1em .35em; border-radius: 4px; }
+  .note { background: #fff8e1; border-left: 4px solid #f5b400; padding: .6rem 1rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+
+<h1>Building and Test-Running Gitea from Source on Ubuntu 22.04 (amd64)</h1>
+
+<p>This guide shows how to fetch the latest Gitea source from
+<a href="https://github.com/go-gitea/gitea.git">https://github.com/go-gitea/gitea.git</a>,
+install the required toolchain, build the <code>gitea</code> binary, and run it for a quick test.</p>
+
+<div class="note">
+Required Go and Node.js versions change over time. This guide reads the Go version from the
+repository's <code>go.mod</code> and the Node.js requirement from <code>package.json</code>, so it stays correct for the latest source.
+Also see the official guide: <a href="https://docs.gitea.com/installation/install-from-source">Installation from source</a>.
+</div>
+
+<h2>1. Install base packages</h2>
+<pre><code>sudo apt update
+sudo apt install -y git make curl ca-certificates build-essential jq</code></pre>
+<p><code>build-essential</code> (gcc) is needed because the SQLite build tags use CGO.</p>
+
+<h2>2. Download the latest source code</h2>
+<pre><code>git clone https://github.com/go-gitea/gitea.git
+cd gitea</code></pre>
+<p>This checks out the <code>main</code> branch (the latest development code). To build the latest stable release instead:</p>
+<pre><code>git fetch --tags
+git checkout "$(git tag -l 'v*' | grep -v -- '-' | sort -V | tail -n 1)"</code></pre>
+
+<h2>3. Check the required tool versions</h2>
+<pre><code>grep -E '^(go|toolchain) ' go.mod
+grep -A3 '"engines"' package.json
+grep -E '^(MIN_GO_VERSION|MIN_NODE_VERSION)' Makefile</code></pre>
+<p>Note the minimum Go and Node.js versions printed. Ubuntu 22.04's packaged Go and Node.js are too old, so install them from upstream.</p>
+
+<h2>4. Install Go</h2>
+<p>Pick the version from <code>go.mod</code> (or the latest from <a href="https://go.dev/dl/">go.dev/dl</a>):</p>
+<pre><code>GO_VERSION="$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -n 1)"   # e.g. go1.xx.x
+curl -fsSLO "https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "${GO_VERSION}.linux-amd64.tar.gz"
+
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
+source ~/.bashrc
+go version</code></pre>
+
+<h2>5. Install Node.js and npm</h2>
+<p>Use the current LTS release (Node.js 22 or newer; adjust the major version if the requirement above is higher):</p>
+<pre><code>curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version
+npm --version</code></pre>
+
+<h2>6. Build Gitea</h2>
+<p>From inside the <code>gitea</code> directory:</p>
+<pre><code>TAGS="bindata sqlite sqlite_unlock_notify" make build</code></pre>
+<ul>
+  <li><code>bindata</code> embeds all web assets into one binary (required for production use).</li>
+  <li><code>sqlite sqlite_unlock_notify</code> enables SQLite support, which is convenient for testing.</li>
+  <li><code>make build</code> runs <code>make frontend</code> (Node.js) and <code>make backend</code> (Go).</li>
+</ul>
+<p>The first build downloads many dependencies and can take several minutes. When it finishes, a <code>gitea</code> binary is created in the current directory:</p>
+<pre><code>./gitea --version</code></pre>
+
+<h2>7. (Optional) Run the unit tests</h2>
+<pre><code>TAGS="sqlite sqlite_unlock_notify" make test-backend</code></pre>
+<p>The full test suite is long-running; to run a single package, for example:</p>
+<pre><code>go test -tags "sqlite sqlite_unlock_notify" ./modules/util/...</code></pre>
+
+<h2>8. Test run</h2>
+<p>Gitea refuses to run as root, so use a normal user. For a quick test, run it directly from the build directory:</p>
+<pre><code>./gitea web</code></pre>
+<p>Open <a href="http://localhost:3000">http://localhost:3000</a> (use the server's IP address for remote access; make sure port 3000 is reachable, e.g. <code>sudo ufw allow 3000/tcp</code>).
+The install page appears on first launch:</p>
+<ol>
+  <li>Choose <strong>SQLite3</strong> as the database type.</li>
+  <li>Keep the default settings (or adjust the Server Domain and Base URL).</li>
+  <li>Optionally create an administrator account, then click <strong>Install Gitea</strong>.</li>
+</ol>
+<p>Verify from the command line:</p>
+<pre><code>curl -I http://localhost:3000/
+curl -s http://localhost:3000/api/healthz</code></pre>
+<p>Stop the server with <kbd>Ctrl</kbd> + <kbd>C</kbd>. Data created during the test is stored under <code>data/</code>, <code>custom/</code>, and <code>log/</code> in the working directory and can be deleted to start over.</p>
+
+<h2>9. Updating later</h2>
+<pre><code>cd gitea
+git pull
+TAGS="bindata sqlite sqlite_unlock_notify" make build</code></pre>
+
+<h2>Troubleshooting</h2>
+<ul>
+  <li><strong>Go version errors:</strong> confirm <code>which go</code> points to <code>/usr/local/go/bin/go</code>, not <code>/usr/bin/go</code>.</li>
+  <li><strong>Node.js version errors:</strong> confirm <code>node --version</code> meets the minimum from step 3.</li>
+  <li><strong><code>gcc: not found</code>:</strong> install <code>build-essential</code>.</li>
+  <li><strong>Out-of-memory during the frontend build:</strong> use a machine with at least 4 GB RAM or add swap.</li>
+  <li><strong>"Gitea is not supposed to be run as root":</strong> run as a non-root user.</li>
+</ul>
+
+</body>
+</html>
